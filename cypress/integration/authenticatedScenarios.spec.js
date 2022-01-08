@@ -36,8 +36,8 @@ describe('Scenarios where authentication is a pre-requirement', () => {
 
   it('logs out', { tags: '@desktop-and-tablet' }, () => {
     cy.visit('/')
-    // cy.wait('@getNotes')
-    cy.wait(2000)
+    cy.wait('@getNotes')
+    // cy.wait(2000)
 
     // if (Cypress.config('viewportWidth') < Cypress.env('viewportWidthBreakpoint')) {
     //   cy.get('.navbar-toggle.collapsed')
