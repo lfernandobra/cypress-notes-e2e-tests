@@ -1,13 +1,13 @@
 /// <reference path="../support/commands.d.ts" />
+import { faker } from '@faker-js/faker'
 
-describe('Scenarios where authentication is a pre-requirement', () => {
+describe('Scenarios where authentication is a pre-requirement', { tags: '@auth' }, () => {
   beforeEach(() => {
     cy.intercept('GET', '**/notes').as('getNotes')
     cy.login()
   })
 
   it('CRUDs a note', () => {
-    const faker = require('faker')
     const noteDescription = faker.lorem.words(4)
 
     cy.createNote(noteDescription)
@@ -23,14 +23,14 @@ describe('Scenarios where authentication is a pre-requirement', () => {
     cy.wait('@getNotes')
   })
 
-  it('successfully submits the form', () => {
+  it('successfully submits the billing settings form', () => {
     cy.intercept('POST', '**/prod/billing').as('paymentRequest')
 
     cy.fillSettingsFormAndSubmit()
 
     cy.wait('@getNotes')
-    cy.wait('@paymentRequest').then(response => {
-      expect(response.state).to.equal('Complete')
+    cy.wait('@paymentRequest').then((interception) => {
+      expect(interception.state).to.equal('Complete')
     })
   })
 
@@ -38,15 +38,13 @@ describe('Scenarios where authentication is a pre-requirement', () => {
     cy.visit('/')
     cy.wait('@getNotes')
 
-    if (Cypress.config('viewportWidth') < Cypress.env('viewportWidthBreakpoint')) {
+    if (Cypress.config('viewportWidth') < Cypress.expose('viewportWidthBreakpoint')) {
       cy.get('.navbar-toggle.collapsed')
         .should('be.visible')
         .click()
     }
 
-    /* ==== Generated with Cypress Studio ==== */
-    cy.get('.nav > :nth-child(2) > a').click()
+    cy.contains('.nav a', 'Logout').click()
     cy.get('#email').should('be.visible')
-    /* ==== End Cypress Studio ==== */
   })
 })

@@ -1,46 +1,98 @@
-# Testes _end-to-end_ com Cypress
+# Cypress Notes E2E Tests
 
-Sample project to demonstrate end-to-end (e2e) tests written with Cypress running on a CI service.
+Automated End-to-End QA suite for the **Scratch** Serverless Notes application (`https://notes-serverless-app.com`), modernized to **Cypress 16**, **Node.js 24**, **ESLint 10 (`eslint-plugin-cypress`)**, **`@cypress/grep`**, **Gherkin BDD**, **OpenAPI/Postman contracts**, and **GitHub Actions CI**.
 
-## Pre-requirements
+---
 
-To run this project, you will need:
+## 1. Test Strategy & Coverage Architecture
 
-- [git](https://git-scm.com/downloads) (I've used version `2.26.2` while writing this doc)
-- [nodejs](https://nodejs.org/en/) (I've used version `14.17.3` while writing this doc)
-- NPM (I've used version `6.14.13` while writing this doc)
-- [Google Chrome](https://www.google.com/intl/en_us/chrome/) (I've used version `92.0.4515.131` while writing this doc)
+| Layer | Scope | Specs / Artifacts | Requires Secrets |
+| --- | --- | --- | --- |
+| **Static Quality** | ESLint 10 flat config + Cypress plugin rules | [`eslint.config.mjs`](eslint.config.mjs) | No |
+| **Public & Responsive UI** | Landing links, `/notes/new` & `/settings` auth redirects, Login/Signup validation, 404 route, `< 768px` tablet navbar toggle | [`cypress/e2e/publicScenarios.cy.js`](cypress/e2e/publicScenarios.cy.js) | No |
+| **Authenticated Flows** | Cognito login (`cy.session()`), Note CRUD + `cy.selectFile()` upload, Stripe iframe billing (`POST **/prod/billing`), responsive logout | [`cypress/e2e/login.cy.js`](cypress/e2e/login.cy.js), [`cypress/e2e/authenticatedScenarios.cy.js`](cypress/e2e/authenticatedScenarios.cy.js) | `USER_EMAIL`, `USER_PASSWORD` |
+| **Email OTP Onboarding** | End-to-end user signup and 6-digit code extraction via Mailosaur | [`cypress/e2e/signup.cy.js`](cypress/e2e/signup.cy.js) | `MAILOSAUR_*`, `USER_PASSWORD` |
+| **API & QA Docs** | BDD Gherkin specs, OpenAPI 3.0 contract, Postman collection, Test Plan, Test Cases, Bug Report | [`specs/`](specs/features/), [`docs/`](docs/qa/TEST_PLAN.md) | No |
 
-**Note:** When installing nodejs, NPM is automatically installed too.
+---
 
-## Installation
+## 2. Project Structure
 
-To install the dev dependencies, run `npm install` (or `npm i` for short.)
+```text
+├── .github/workflows/ci.yml              # ESLint + Desktop & Tablet CI workflows (cypress-io/github-action@v7)
+├── cypress.config.js                     # Cypress 16 E2E config + @cypress/grep/plugin + expose breakpoint
+├── cypress.env.example.json              # Credential placeholder template (copy to cypress.env.json)
+├── eslint.config.mjs                     # ESLint 10 flat configuration with eslint-plugin-cypress
+├── cypress/
+│   ├── e2e/
+│   │   ├── publicScenarios.cy.js         # Unauthenticated UI, route guards, validation & responsive toggle
+│   │   ├── login.cy.js                   # Uncached login flow
+│   │   ├── authenticatedScenarios.cy.js  # Note CRUD + upload, Stripe billing iframe, logout (@desktop-and-tablet)
+│   │   └── signup.cy.js                  # Cognito email OTP signup with Mailosaur (@mailosaur)
+│   ├── fixtures/example.json             # Sample attachment fixture for note creation/editing
+│   └── support/
+│       ├── commands.js                   # Custom commands using cy.env(), cy.session(), cy.selectFile(), cy.iframe()
+│       ├── commands.d.ts                 # TypeScript/IDE autocomplete definitions
+│       └── e2e.js                        # Support entry point (@cypress/grep, iframe, mailosaur, commands)
+├── docs/
+│   ├── postman/scratch-notes-api.postman_collection.json
+│   ├── qa/                               # TEST_PLAN.md, TEST_CASES.md & bug-reports/BUG-001
+│   └── swagger/openapi.yaml              # API contract mapped from Scratch AWS API Gateway calls
+└── specs/features/                       # Gherkin BDD feature files
+```
 
-## Configuring the environment variables
+---
 
-Before running the tests, some environment variables need to be set up.
+## 3. Technical Highlights
 
-Make a copy of the [`cypress.env.example.json`](./cypress.env.example.json) file as `cypress.env.json`, and set the appropriate values for all the variables.
+* **Cypress 16 Security Model (`cy.env()` & `Cypress.expose()`):** Sensitive credentials (`USER_EMAIL`, `USER_PASSWORD`, `MAILOSAUR_API_KEY`) are fetched asynchronously via `cy.env([...])` rather than deprecated `Cypress.env()`, while non-sensitive layout configuration (`viewportWidthBreakpoint: 768`) uses `Cypress.expose()`.
+* **Cross-Viewport Tagging:** Responsive tests tagged `{ tags: '@desktop-and-tablet' }` execute cleanly under both `1280x720` (desktop) and `767x480` (tablet) viewports via `--expose grepTags=@desktop-and-tablet`.
+* **Native File Uploads & Session Caching:** Uses built-in `cy.selectFile()` and `cy.session()`, removing obsolete third-party upload and theming packages.
+* **Third-Party Iframe & Network Synchronization:** Exercises Stripe card inputs inside `.card-field iframe` via `cypress-iframe` and synchronizes UI assertions with `cy.intercept()` aliases (`@getNotes`, `@paymentRequest`).
 
-**Note:** `cypress.env.json` file is not tracked by git.
+---
 
-## Running the tests
+## 4. Local Setup & Execution
 
-In this project, you can run tests in interactive and headless modes, and on desktop and tablet viewports.
+### Prerequisites
+* **Node.js 22+ or 24+** (`npm` included)
 
-### Headless mode
+### Install Dependencies
+```bash
+npm ci
+```
 
-Run `npm test` (or `npm t` for short) to run all tests in headless mode using a desktop viewport.
+### Run Without Credentials (Public & Responsive Suites + Lint)
+```bash
+# Static checks
+npm run lint
 
-Run `npm run test:tablet` to run the appropriate tests in headless mode using a tablet viewport.
+# Public desktop scenarios (routes, guards, form validation, 404, desktop navbar)
+npm run test:public
 
-### Interactive mode
+# Responsive tablet viewport (@desktop-and-tablet tag)
+npx cypress run --config viewportWidth=767,viewportHeight=480 --spec cypress/e2e/publicScenarios.cy.js --expose grepTags=@desktop-and-tablet
+```
 
-Run `npm run cy:open` to open the Cypress Test Runner to run tests in interactive mode using a desktop viewport.
+### Run Full Suite (Including Authenticated & Mailosaur Specs)
+Copy [`cypress.env.example.json`](cypress.env.example.json) to `cypress.env.json` (git-ignored) and populate valid credentials:
 
-Run `npm run cy:open:tablet` to open the Cypress Test Runner to run tests in interactive mode using a tablet viewport.
+```bash
+cp cypress.env.example.json cypress.env.json
 
-___
+# Full headless suite
+npm test
 
-Made with ❤️ by [Luis Fernando Brandão](https://your-web-site-or-github-profile-here).
+# Interactive runner (desktop / tablet)
+npm run cy:open
+npm run cy:open:tablet
+```
+
+---
+
+## 5. Author
+
+**Luis Fernando Brandão**  
+QA Automation Engineer  
+* [GitHub](https://github.com/lfernandobra)  
+* [LinkedIn](https://linkedin.com/in/lfernandobra)

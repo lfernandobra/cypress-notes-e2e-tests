@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: Scratch Serverless Notes API
+  version: 1.0.0
+  description: >
+    API contract for the Scratch Notes Serverless backend consumed by the React client
+    and observed via Cypress network intercepts in end-to-end suites.
+servers:
+  - url: https://90xbti2sk5.execute-api.eu-central-1.amazonaws.com/prod
+    description: AWS API Gateway Production Stage
+
+security:
+  - AwsSigV4OrCognito: []
+
+paths:
+  /notes:
+    get:
+      summary: List all notes belonging to the authenticated user
+      responses:
+        "200":
+          description: List of user notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Note"
+    post:
+      summary: Create a new note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotePayload"
+      responses:
+        "200":
+          description: Created note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
+
+  /notes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Retrieve a specific note by ID
+      responses:
+        "200":
+          description: Note details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
+    put:
+      summary: Update an existing note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotePayload"
+      responses:
+        "200":
+          description: Updated note response
+    delete:
+      summary: Delete a specific note
+      responses:
+        "200":
+          description: Deletion confirmation
+
+  /billing:
+    post:
+      summary: Process a storage billing charge via Stripe token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BillingRequest"
+      responses:
+        "200":
+          description: Billing transaction processed
+
+components:
+  securitySchemes:
+    AwsSigV4OrCognito:
+      type: apiKey
+      in: header
+      name: Authorization
+  schemas:
+    NotePayload:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          example: Buy groceries and review QA suite
+        attachment:
+          type: string
+          nullable: true
+          example: 1641630000000-example.json
+    Note:
+      allOf:
+        - $ref: "#/components/schemas/NotePayload"
+        - type: object
+          properties:
+            noteId:
+              type: string
+            userId:
+              type: string
+            createdAt:
+              type: integer
+              format: int64
+    BillingRequest:
+      type: object
+      required: [storage, source]
+      properties:
+        storage:
+          type: integer
+          minimum: 1
+          example: 1
+        source:
+          type: string
+          description: Stripe token ID (tok_visa in test mode)
+          example: tok_visa

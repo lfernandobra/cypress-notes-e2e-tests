@@ -1,3 +1,15 @@
+const attachFixtureFile = () => {
+  cy.get('#file').selectFile('cypress/fixtures/example.json')
+}
+
+function submitLoginForm(email, password) {
+  cy.visit('/login')
+  cy.get('#email').type(email)
+  cy.get('#password').type(password, { log: false })
+  cy.contains('button', 'Login').click()
+  cy.contains('h1', 'Your Notes').should('be.visible')
+}
+
 Cypress.Commands.add('fillSignupFormAndSubmit', (email, password) => {
   cy.visit('/signup')
   cy.get('#email').type(email)
@@ -7,54 +19,39 @@ Cypress.Commands.add('fillSignupFormAndSubmit', (email, password) => {
   cy.get('#confirmationCode').should('be.visible')
 })
 
-// Cypress.Commands.add('login', (
-//     username = Cypress.env('USER_EMAIL'),
-//     password = Cypress.env('USER_PASSWORD')
-//     ) => {
-//     cy.visit('/login')
-//     cy.get('#email').type(username)
-//     cy.get('#password').type(password, {log: false})
-//     cy.contains('button', 'Login').click()
-//     cy.contains('h1', 'Your Notes').should('be.visible')
-// })
-
-
-Cypress.Commands.add('login', (
-  username = Cypress.env('USER_EMAIL'),
-  password = Cypress.env('USER_PASSWORD'),
-  { cacheSession = true } = {}
-) => {
-  const login = () => {
-    cy.visit('/login')
-    cy.get('#email').type(username)
-    cy.get('#password').type(password, { log: false })
-    cy.contains('button', 'Login').click()
-    cy.contains('h1', 'Your Notes').should('be.visible')
+Cypress.Commands.add('login', (username, password, { cacheSession = true } = {}) => {
+  const performLogin = (email, secret) => {
+    if (cacheSession) {
+      cy.session([email, secret], () => submitLoginForm(email, secret))
+    } else {
+      submitLoginForm(email, secret)
+    }
   }
 
-  if (cacheSession) {
-    cy.session([username, password], login)
-  } else {
-    login()
+  if (username && password) {
+    performLogin(username, password)
+    return
   }
+
+  cy.env(['USER_EMAIL', 'USER_PASSWORD']).then(({ USER_EMAIL, USER_PASSWORD }) => {
+    if (!USER_EMAIL || !USER_PASSWORD) {
+      throw new Error(
+        'USER_EMAIL and USER_PASSWORD must be configured via CYPRESS_USER_EMAIL / CYPRESS_USER_PASSWORD or cypress.env.json'
+      )
+    }
+    performLogin(USER_EMAIL, USER_PASSWORD)
+  })
 })
-
-// cypress/support/commands.js
-
-// Outros comands aqui ...
-
-const attachFileHandler = () => cy.get('#file').attachFile('example.json')
 
 Cypress.Commands.add('createNote', (note, attachFile = false) => {
   cy.visit('/notes/new')
   cy.get('#content').type(note)
 
   if (attachFile) {
-    attachFileHandler()
+    attachFixtureFile()
   }
 
   cy.contains('button', 'Create').click()
-
   cy.contains('.list-group-item', note).should('be.visible')
 })
 
@@ -64,12 +61,11 @@ Cypress.Commands.add('editNote', (note, newValue, attachFile = false) => {
   cy.contains('.list-group-item', note).click()
   cy.wait('@getNote')
 
-  cy.get('#content')
-    .clear()
-    .type(newValue)
+  cy.get('#content').clear()
+  cy.get('#content').type(newValue)
 
   if (attachFile) {
-    attachFileHandler()
+    attachFixtureFile()
   }
 
   cy.contains('button', 'Save').click()
@@ -78,16 +74,12 @@ Cypress.Commands.add('editNote', (note, newValue, attachFile = false) => {
   cy.contains('.list-group-item', newValue).should('be.visible')
 })
 
-Cypress.Commands.add('deleteNote', note => {
+Cypress.Commands.add('deleteNote', (note) => {
   cy.contains('.list-group-item', note).click()
   cy.contains('button', 'Delete').click()
 
   cy.contains('.list-group-item', note).should('not.exist')
 })
-
-// cypress/support/commands.js
-
-// Outros comandos aqui ...
 
 Cypress.Commands.add('fillSettingsFormAndSubmit', () => {
   cy.visit('/settings')

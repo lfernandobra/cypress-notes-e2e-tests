@@ -1,51 +1,145 @@
-name: ci
+name: Cypress E2E CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   eslint:
+    name: ESLint Code Quality
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install modules
-      run: npm install
-    - name: Run ESLint
-      run: npm run lint
-  cypress-tests-desktop:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  cypress-public-desktop:
+    name: Cypress Public E2E (Desktop 1280x720)
     needs: eslint
     runs-on: ubuntu-latest
-    container: cypress/browsers:node12.18.3-chrome87-ff82
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Run end-to-end tests on desktop viewport 🧪
-        uses: cypress-io/github-action@v2
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Run public desktop specs
+        uses: cypress-io/github-action@v7
+        with:
+          spec: cypress/e2e/publicScenarios.cy.js
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-public-desktop-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+
+  cypress-public-tablet:
+    name: Cypress Responsive E2E (Tablet 767x480)
+    needs: eslint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Run responsive tablet specs
+        uses: cypress-io/github-action@v7
+        with:
+          spec: cypress/e2e/publicScenarios.cy.js
+          config: viewportWidth=767,viewportHeight=480
+          expose: grepTags=@desktop-and-tablet
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-public-tablet-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+
+  cypress-authenticated:
+    name: Cypress Authenticated & Billing E2E
+    needs: eslint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Run authenticated specs
+        uses: cypress-io/github-action@v7
         env:
           CYPRESS_USER_EMAIL: ${{ secrets.CYPRESS_USER_EMAIL }}
+          CYPRESS_USER_PASSWORD: ${{ secrets.CYPRESS_USER_PASSWORD }}
+        with:
+          spec: cypress/e2e/login.cy.js,cypress/e2e/authenticatedScenarios.cy.js
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-authenticated-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+
+  cypress-signup-mailosaur:
+    name: Cypress Signup Email OTP (Mailosaur)
+    needs: eslint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Run signup Mailosaur spec
+        uses: cypress-io/github-action@v7
+        env:
           CYPRESS_USER_PASSWORD: ${{ secrets.CYPRESS_USER_PASSWORD }}
           CYPRESS_MAILOSAUR_SERVER_ID: ${{ secrets.CYPRESS_MAILOSAUR_SERVER_ID }}
           CYPRESS_MAILOSAUR_API_KEY: ${{ secrets.CYPRESS_MAILOSAUR_API_KEY }}
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
         with:
-          command: npm test
-  cypress-tests-tablet:
-    needs: eslint
-    runs-on: ubuntu-latest
-    container: cypress/browsers:node12.18.3-chrome87-ff82
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+          spec: cypress/e2e/signup.cy.js
 
-      - name: Run end-to-end tests on tablet viewport 🧪
-        uses: cypress-io/github-action@v2
-        env:
-          CYPRESS_USER_EMAIL: ${{ secrets.CYPRESS_USER_EMAIL }}
-          CYPRESS_USER_PASSWORD: ${{ secrets.CYPRESS_USER_PASSWORD }}
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-          command: npm run test:tablet
+          name: cypress-signup-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore

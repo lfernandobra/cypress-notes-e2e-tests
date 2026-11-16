@@ -1,26 +1,28 @@
 {
-  "name": "testes-e2e-com-cypress",
-  "version": "1.0.0",
-  "description": "Sample project to demonstrate e2e tests written with Cypress running on GitHub Actions.",
+  "name": "cypress-notes-e2e-tests",
+  "version": "2.0.0",
+  "description": "End-to-end QA automation suite for the Scratch Serverless Notes application using Cypress, ESLint, Gherkin BDD, and GitHub Actions.",
   "scripts": {
     "cy:open": "cypress open",
     "cy:open:tablet": "cypress open --config viewportWidth=767,viewportHeight=480",
-    "test": "cypress run --record --tag 'desktop'",
-    "test:tablet": "cypress run --record --tag 'tablet' --config viewportWidth=767,viewportHeight=480 --spec cypress/integration/authenticatedScenarios.spec.js --env grepTags=@desktop-and-tablet",
-    "lint": "eslint cypress/**/*.js",
-    "lint:fix": "eslint cypress/**/*.js --fix"
+    "test": "cypress run",
+    "test:public": "cypress run --spec cypress/e2e/publicScenarios.cy.js",
+    "test:tablet": "cypress run --config viewportWidth=767,viewportHeight=480 --expose grepTags=@desktop-and-tablet",
+    "test:record": "cypress run --record --tag desktop",
+    "lint": "eslint cypress/**/*.js cypress.config.js eslint.config.mjs",
+    "lint:fix": "eslint cypress/**/*.js cypress.config.js eslint.config.mjs --fix"
   },
-  "author": "",
+  "author": "Luis Fernando Brandão",
   "license": "ISC",
   "devDependencies": {
-    "cypress": "^8.2.0",
-    "cypress-dark": "^1.8.0",
-    "cypress-file-upload": "^5.0.8",
-    "cypress-grep": "^2.5.3",
+    "@cypress/grep": "^7.0.0",
+    "@eslint/js": "^10.0.1",
+    "@faker-js/faker": "^10.6.0",
+    "cypress": "^16.3.0",
     "cypress-iframe": "^1.0.1",
-    "cypress-mailosaur": "^2.3.3",
-    "eslint": "^7.32.0",
-    "eslint-plugin-cypress": "^2.11.3",
-    "faker": "^5.5.3"
+    "cypress-mailosaur": "^5.0.0",
+    "eslint": "^10.15.0",
+    "eslint-plugin-cypress": "^7.0.5",
+    "globals": "^17.14.0"
   }
 }
