@@ -11,7 +11,7 @@ Automated End-to-End QA suite for the **Scratch** Serverless Notes application (
 | **Static Quality** | ESLint 10 flat config + Cypress plugin rules | [`eslint.config.mjs`](eslint.config.mjs) | No |
 | **Public & Responsive UI** | Landing links, `/notes/new` & `/settings` auth redirects, Login/Signup validation, 404 route, `< 768px` tablet navbar toggle | [`cypress/e2e/publicScenarios.cy.js`](cypress/e2e/publicScenarios.cy.js) | No |
 | **Authenticated Flows** | Cognito login (`cy.session()`), Note CRUD + `cy.selectFile()` upload, Stripe iframe billing (`POST **/prod/billing`), responsive logout | [`cypress/e2e/login.cy.js`](cypress/e2e/login.cy.js), [`cypress/e2e/authenticatedScenarios.cy.js`](cypress/e2e/authenticatedScenarios.cy.js) | `USER_EMAIL`, `USER_PASSWORD` |
-| **Email OTP Onboarding** | End-to-end user signup and 6-digit code extraction via Mailosaur | [`cypress/e2e/signup.cy.js`](cypress/e2e/signup.cy.js) | `MAILOSAUR_*`, `USER_PASSWORD` |
+| **Email OTP Onboarding** | End-to-end user signup and 6-digit code extraction via Mailosaur (run manually via `workflow_dispatch` with `run_mailosaur=true`) | [`cypress/e2e/signup.cy.js`](cypress/e2e/signup.cy.js) | `MAILOSAUR_*`, `USER_PASSWORD` |
 | **API & QA Docs** | BDD Gherkin specs, OpenAPI 3.0 contract, Postman collection, Test Plan, Test Cases, Bug Report | [`specs/`](specs/features/), [`docs/`](docs/qa/TEST_PLAN.md) | No |
 
 ---

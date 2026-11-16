@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      run_mailosaur:
+        description: "Run Mailosaur email OTP signup spec (requires active MAILOSAUR_API_KEY)"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   eslint:
@@ -73,7 +79,9 @@ jobs:
         with:
           spec: cypress/e2e/publicScenarios.cy.js
           config: viewportWidth=767,viewportHeight=480
-          expose: grepTags=@desktop-and-tablet
+          expose: |
+            grepTags=@desktop-and-tablet
+            grepOmitFiltered=true
 
       - name: Upload screenshots on failure
         if: failure()
@@ -105,6 +113,18 @@ jobs:
         with:
           spec: cypress/e2e/login.cy.js,cypress/e2e/authenticatedScenarios.cy.js
 
+      - name: Run responsive authenticated logout on tablet (767x480)
+        uses: cypress-io/github-action@v7
+        env:
+          CYPRESS_USER_EMAIL: ${{ secrets.CYPRESS_USER_EMAIL }}
+          CYPRESS_USER_PASSWORD: ${{ secrets.CYPRESS_USER_PASSWORD }}
+        with:
+          spec: cypress/e2e/authenticatedScenarios.cy.js
+          config: viewportWidth=767,viewportHeight=480
+          expose: |
+            grepTags=@desktop-and-tablet
+            grepOmitFiltered=true
+
       - name: Upload screenshots on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -116,6 +136,7 @@ jobs:
   cypress-signup-mailosaur:
     name: Cypress Signup Email OTP (Mailosaur)
     needs: eslint
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_mailosaur }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

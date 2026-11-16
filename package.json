@@ -7,7 +7,7 @@
     "cy:open:tablet": "cypress open --config viewportWidth=767,viewportHeight=480",
     "test": "cypress run",
     "test:public": "cypress run --spec cypress/e2e/publicScenarios.cy.js",
-    "test:tablet": "cypress run --config viewportWidth=767,viewportHeight=480 --expose grepTags=@desktop-and-tablet",
+    "test:tablet": "cypress run --config viewportWidth=767,viewportHeight=480 --expose grepTags=@desktop-and-tablet,grepOmitFiltered=true",
     "test:record": "cypress run --record --tag desktop",
     "lint": "eslint cypress/**/*.js cypress.config.js eslint.config.mjs",
     "lint:fix": "eslint cypress/**/*.js cypress.config.js eslint.config.mjs --fix"
